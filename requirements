@@ -1,1 +1,6 @@
 selenium==4.9.0
+fastapi
+httpx
+pydantic
+uvicorn
+beautifulsoup4
