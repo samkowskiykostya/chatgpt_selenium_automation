@@ -157,3 +157,5 @@ cython_debug/
 
 # Remote profile folder
 remote-profile/
+
+.idea

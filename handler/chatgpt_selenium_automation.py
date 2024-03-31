@@ -74,7 +74,7 @@ class ChatGPTAutomation:
     def send_prompt_to_chatgpt(self, prompt):
         """Sends a message to ChatGPT and waits for 20 seconds for the response"""
 
-        prompt += "\nWrite full response with plain text and no formatting. Wrap response with <pre> tag. This is mandatory and negotiable"
+        # prompt += "\n\nIMPORTANT! Wrap response with <pre> tag. This is mandatory and negotiable"
 
         input_box = self.driver.find_element(
             by=By.XPATH, value='//textarea[contains(@id, "prompt-textarea")]'
