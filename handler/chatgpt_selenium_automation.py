@@ -74,7 +74,7 @@ class ChatGPTAutomation:
     def send_prompt_to_chatgpt(self, prompt):
         """Sends a message to ChatGPT and waits for 20 seconds for the response"""
 
-        prompt += "\nWrite full response without any formatting and rendered elements, inside <pre> tag, so it can be copied into notepad without issues"
+        prompt += "\nWrite full response with plain text and no formatting. Wrap response with <pre> tag. This is mandatory and negotiable"
 
         input_box = self.driver.find_element(
             by=By.XPATH, value='//textarea[contains(@id, "prompt-textarea")]'
@@ -83,9 +83,10 @@ class ChatGPTAutomation:
         time.sleep(5)
         input_box.send_keys(Keys.RETURN)
         input_box.submit()
-        print('Waiting for response')
+        time.sleep(2)
+        print("Waiting for response")
         self.wait_for_response_end()
-        print('Response collected')
+        print("Response collected")
 
     def wait_for_response_end(self):
         button = WebDriverWait(self.driver, 2000).until(
