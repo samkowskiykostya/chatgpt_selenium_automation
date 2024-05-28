@@ -4,15 +4,13 @@ import socket
 import threading
 import time
 
+import undetected_chromedriver as uc
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-
-
-from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.ui import WebDriverWait
 
 # from webdriver_manager.chrome import ChromeDriverManager
 
@@ -33,12 +31,13 @@ class ChatGPTAutomation:
         self.chrome_path = chrome_path
         self.chrome_driver_path = chrome_driver_path
 
-        url = r"https://chat.openai.com"
+        self.url = r"https://chat.openai.com"
+        # self.url = r"https://google.com"
         free_port = self.find_available_port()
-        self.launch_chrome_with_remote_debugging(free_port, url)
+        # self.launch_chrome_with_remote_debugging(free_port, url)
         self.driver = self.setup_webdriver(free_port)
         # self.wait_for_human_verification()
-        self.wait_for_response_end()
+        # self.wait_for_response_end()
 
     @staticmethod
     def find_available_port():
@@ -65,10 +64,13 @@ class ChatGPTAutomation:
         """Initializes a Selenium WebDriver instance, connected to an existing Chrome browser
         with remote debugging enabled on the specified port"""
 
-        chrome_options = webdriver.ChromeOptions()
-        chrome_options.binary_location = self.chrome_driver_path
-        chrome_options.add_experimental_option("debuggerAddress", f"127.0.0.1:{port}")
-        driver = webdriver.Chrome(options=chrome_options)
+        # chrome_options = webdriver.ChromeOptions()
+        # chrome_options.binary_location = self.chrome_driver_path
+        # chrome_options.add_experimental_option("debuggerAddress", f"127.0.0.1:{port}")
+        # driver = webdriver.Chrome(options=chrome_options)
+        # driver = webdriver.Chrome()
+        driver = uc.Chrome()
+        driver.get(self.url)
         return driver
 
     def send_prompt_to_chatgpt(self, prompt):
@@ -89,8 +91,10 @@ class ChatGPTAutomation:
         print("Response collected")
 
     def wait_for_response_end(self):
-        button = WebDriverWait(self.driver, 2000).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="send-button"]'))
+        button = WebDriverWait(self.driver, 2).until(
+            EC.presence_of_element_located(
+                (By.CSS_SELECTOR, '[data-testid="fruitjuice-send-button"]')
+            )
         )
 
         def element_has_attribute(element, attribute):
@@ -99,7 +103,7 @@ class ChatGPTAutomation:
 
             return predicate
 
-        WebDriverWait(self.driver, 2000).until(element_has_attribute(button, "disabled"))
+        WebDriverWait(self.driver, 120).until(element_has_attribute(button, "disabled"))
 
     def return_chatgpt_conversation(self):
         """
@@ -134,9 +138,10 @@ class ChatGPTAutomation:
 
     def return_last_response(self):
         """:return: the text of the last chatgpt response"""
-
-        response_elements = self.driver.find_elements(by=By.CSS_SELECTOR, value="div.text-base")
-        return response_elements[-1].text
+        return self.driver.find_elements(
+            by=By.XPATH, value="//div[@data-message-author-role='assistant']"
+        )[-1].text
+        # return self.driver.find_elements(by=By.XPATH, value="//div[@dir='auto']")[-1].text
 
     @staticmethod
     def wait_for_human_verification():

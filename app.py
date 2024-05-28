@@ -1,15 +1,20 @@
-import uvicorn
+import asyncio
 import json
-from fastapi import FastAPI
-from pydantic import BaseModel
+import re
+import time
 from typing import List
-from handler.chatgpt_selenium_automation import ChatGPTAutomation
-from bs4 import BeautifulSoup
 
+import uvicorn
+from bs4 import BeautifulSoup
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse, StreamingResponse
+from pydantic import BaseModel
+
+from handler.chatgpt_selenium_automation import ChatGPTAutomation
 
 app = FastAPI()
 
-CHROME_DRIVER_PATH = "/home/max/Install/chromedriver"
+CHROME_DRIVER_PATH = "/home/max/Install/chromedrivers/chromedriver-114.0.5735.90"
 CHROME_PATH = "/home/max/w/_github/chrome/linux-114.0.5735.133/chrome-linux64/chrome"
 CHATGPT = None
 
@@ -29,10 +34,44 @@ class CompletionRequest(BaseModel):
 async def create_chat_completion(request: CompletionRequest):
     prompt = "\n".join([a.content for a in request.messages])
     CHATGPT.send_prompt_to_chatgpt(prompt)
-
     response = fixup_response(CHATGPT.return_last_response())
     print(response)
     return json.dumps({"role": "assistant", "content": response})
+
+
+@app.post("/chat/completions")
+async def create_chat_stream_completion(request: Request):
+    body = await request.json()
+    if "messages" not in body:
+        raise HTTPException(status_code=400, detail="Missing 'messages' key in request body.")
+    if not isinstance(body["messages"], list):
+        raise HTTPException(status_code=400, detail="'messages' must be a list.")
+    CHATGPT.send_prompt_to_chatgpt(body['messages'][-1]['content'][0]['text'])
+    prompt = CHATGPT.return_last_response()
+    # prompt = "Hello! I am happy to help you whatever you are interested in"
+    return StreamingResponse(chat_stream_generator(prompt), media_type="text/event-stream")
+
+
+def chat_stream_generator(text: str):
+    tokens = re.findall(r"\S+|\s+", text)  # Split while keeping spaces and other symbols
+    for i, token in enumerate(tokens):
+        event_data = {
+            "id": f"chatcmpl-9TeIgRFGsZamIdzCJt2jEBtLFmyMs{i}",
+            "object": "chat.completion.chunk",
+            "created": int(time.time()),
+            "model": "gpt-4o-2024-05-13",
+            "system_fingerprint": "fp_43dfabdef1",
+            "choices": [
+                {
+                    "index": 0,
+                    "delta": {"role": "assistant", "content": token},
+                    "logprobs": None,
+                    "finish_reason": None,
+                }
+            ],
+            "usage": None,
+        }
+        yield f"data: {json.dumps(event_data)}\n\n"
 
 
 @app.get("/latest")
